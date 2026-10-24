@@ -1,0 +1,10 @@
+Win32/
+Win64/
+__history/
+__recovery/
+*.local
+*.identcache
+*.dsk
+*.stat
+*.ini
+!PMDesk.example.ini
