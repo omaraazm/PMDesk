@@ -3031,10 +3031,14 @@ begin
   FApi := TPropertyApi.Create(FConfig.BaseUrl, FConfig.ConnectTimeoutMs,
     FConfig.ResponseTimeoutMs);
   Caption := 'PMDesk - ' + FConfig.BaseUrl;
-  DefinePropertiesTable;
-  DefineDetailTables;
+  FFilling := True;            // opening a dataset fires AfterScroll: ignore it here
+  try
+    DefinePropertiesTable;
+    DefineDetailTables;
+  finally
+    FFilling := False;
+  end;
 end;
-
 procedure TfrmMain.DefineDetailTables;
 begin
   AddHidden(mtUnits, 'Id');
