@@ -8,7 +8,8 @@ uses
   uAsync in 'uAsync.pas',
   uApiTypes in 'uApiTypes.pas',
   uDataSets in 'uDataSets.pas',
-  uPropertyApi in 'uPropertyApi.pas';
+  uPropertyApi in 'uPropertyApi.pas',
+  uLogin in 'uLogin.pas' {frmLogin};
 
 {$R *.res}
 

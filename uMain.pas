@@ -16,6 +16,8 @@ type
     private
     FConfig: TAppConfig;
     FApi: TPropertyApi;
+    FUser: TUserRec;
+    procedure SignIn;
   public
     { Public declarations }
   end;
@@ -26,6 +28,8 @@ var
 implementation
 
 {$R *.dfm}
+
+uses uLogin;
 
 procedure TfrmMain.btnTestClick(Sender: TObject);
 

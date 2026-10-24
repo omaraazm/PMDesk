@@ -133,6 +133,10 @@
         <DCCReference Include="uApiTypes.pas"/>
         <DCCReference Include="uDataSets.pas"/>
         <DCCReference Include="uPropertyApi.pas"/>
+        <DCCReference Include="uLogin.pas">
+            <Form>frmLogin</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
