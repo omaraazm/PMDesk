@@ -13,14 +13,26 @@ object frmMain: TfrmMain
   Position = poScreenCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  OnShow = FormShow
   TextHeight = 15
-  object btnTest: TButton
-    Left = 8
-    Top = 8
-    Width = 75
-    Height = 25
-    Caption = 'Test API'
+  object pnlTop: TPanel
+    Left = 0
+    Top = 0
+    Width = 1184
+    Height = 41
+    Align = alTop
+    BevelOuter = bvNone
     TabOrder = 0
-    OnClick = btnTestClick
+    ExplicitLeft = 512
+    ExplicitTop = 360
+    ExplicitWidth = 185
+    object Button1: TButton
+      Left = 552
+      Top = 8
+      Width = 75
+      Height = 25
+      Caption = 'Refresh'
+      TabOrder = 0
+    end
   end
 end

@@ -5,14 +5,15 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, uConfig, uApiTypes, uApiErrors, uPropertyApi,
-  Vcl.StdCtrls;
+  Vcl.StdCtrls, Vcl.ExtCtrls;
 
 type
   TfrmMain = class(TForm)
-    btnTest: TButton;
+    pnlTop: TPanel;
+    Button1: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure btnTestClick(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     private
     FConfig: TAppConfig;
     FApi: TPropertyApi;
@@ -31,21 +32,6 @@ implementation
 
 uses uLogin;
 
-procedure TfrmMain.btnTestClick(Sender: TObject);
-
-begin
-  // TEMPORARY: removed in g.7. Runs on the UI thread on purpose.
-  try
-    FApi.CheckHealth;
-    ShowMessage('Server is up: ' + FConfig.BaseUrl);
-    FApi.GetProperties;                // not signed in yet: must fail with 401
-    ShowMessage('Unexpected: properties loaded without signing in');
-  except
-    on E: EApiError do
-      ShowMessage(Format('EApiError, HTTP %d: %s', [E.StatusCode, E.Message]));
-  end;
-end;
-
 procedure TfrmMain.FormCreate(Sender: TObject);
 begin
   FConfig := TAppConfig.Create;
@@ -60,4 +46,30 @@ begin
   FApi.Free;
   FConfig.Free;
 end;
+procedure TfrmMain.FormShow(Sender: TObject);
+begin
+  // Let the main window finish appearing, then ask for the login.
+  // ForceQueue: run this later, on this same (main) thread.
+  TThread.ForceQueue(nil,
+    procedure
+    begin
+      SignIn;
+    end);
+end;
+
+procedure TfrmMain.SignIn;
+begin
+  if FConfig.IsPlaceholder then
+  begin
+    MessageDlg('Set BaseUrl in ' + FConfig.FileName + ', then start PMDesk again.',
+      mtWarning, [mbOK], 0);
+    Close;
+    Exit;
+  end;
+  if TfrmLogin.Execute(FApi, FConfig, FUser) then
+    Caption := 'PMDesk - ' + FUser.FullName
+  else
+    Close;
+end;
+
 end.
