@@ -3,7 +3,12 @@ program PMDesk;
 uses
   Vcl.Forms,
   uMain in 'uMain.pas' {frmMain},
-  uConfig in 'uConfig.pas';
+  uConfig in 'uConfig.pas',
+  uApiErrors in 'uApiErrors.pas',
+  uAsync in 'uAsync.pas',
+  uApiTypes in 'uApiTypes.pas',
+  uDataSets in 'uDataSets.pas',
+  uPropertyApi in 'uPropertyApi.pas';
 
 {$R *.res}
 

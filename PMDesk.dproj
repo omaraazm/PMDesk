@@ -128,6 +128,11 @@
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="uConfig.pas"/>
+        <DCCReference Include="uApiErrors.pas"/>
+        <DCCReference Include="uAsync.pas"/>
+        <DCCReference Include="uApiTypes.pas"/>
+        <DCCReference Include="uDataSets.pas"/>
+        <DCCReference Include="uPropertyApi.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

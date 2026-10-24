@@ -14,4 +14,13 @@ object frmMain: TfrmMain
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   TextHeight = 15
+  object btnTest: TButton
+    Left = 8
+    Top = 8
+    Width = 75
+    Height = 25
+    Caption = 'Test API'
+    TabOrder = 0
+    OnClick = btnTestClick
+  end
 end
