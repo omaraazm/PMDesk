@@ -18,6 +18,8 @@ type
     lblStatus: TLabel;
     btnSignIn: TButton;
     btnCancel: TButton;
+    procedure btnSignInClick(Sender: TObject);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
   private
     FApi: TPropertyApi;
     FConfig: TAppConfig;
@@ -41,6 +43,39 @@ implementation
 
 uses uAsync;
 
+procedure TfrmLogin.btnSignInClick(Sender: TObject);
+var
+  Email, Password: string;
+begin
+  // read the controls here, on the UI thread; the worker gets copies
+  Email := Trim(edtEmail.Text);
+  Password := edtPassword.Text;
+  if (Email = '') or (Password = '') then
+  begin
+    lblStatus.Caption := 'Enter your email and password.';
+    Exit;
+  end;
+
+  FApi.ClearTokens;
+  SetBusy(True);
+  lblStatus.Caption := 'Signing in... (a sleeping server can take up to a minute)';
+  TAsync.Run<TTokenPair>(
+    function: TTokenPair
+    begin
+      Result := FApi.Login(Email, Password);   // worker thread
+    end,
+    procedure(Pair: TTokenPair)
+    begin
+      FApi.SetTokens(Pair);                    // main thread only
+      LoadAccount;                             // second request: who am I?
+    end,
+    procedure(Err: TApiErrorInfo)
+    begin
+      SetBusy(False);
+      ShowError(Err);
+    end);
+end;
+
 class function TfrmLogin.Execute(AApi: TPropertyApi; AConfig: TAppConfig;
   out User: TUserRec): Boolean;
 var
@@ -60,6 +95,13 @@ begin
   finally
     Form.Free;
   end;
+end;
+
+procedure TfrmLogin.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+begin
+  // Closing while a request runs would free this form before its reply
+  // arrives, and the reply would then write to a dead form.
+  CanClose := not FBusy;
 end;
 
 procedure TfrmLogin.SetBusy(Busy: Boolean);

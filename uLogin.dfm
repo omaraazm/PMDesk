@@ -12,6 +12,7 @@ object frmLogin: TfrmLogin
   Font.Name = 'Segoe UI'
   Font.Style = []
   Position = poMainFormCenter
+  OnCloseQuery = FormCloseQuery
   TextHeight = 15
   object lblServerCaption: TLabel
     Left = 16
@@ -72,6 +73,7 @@ object frmLogin: TfrmLogin
     Caption = 'Sign in'
     Default = True
     TabOrder = 2
+    OnClick = btnSignInClick
   end
   object btnCancel: TButton
     Left = 320
