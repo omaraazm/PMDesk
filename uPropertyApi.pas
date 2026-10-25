@@ -37,6 +37,12 @@ type
     function Login(const Email, Password: string): TTokenPair;
     function GetMe: TUserRec;
     function GetProperties: TPropertyArray;
+    function GetUnits(const PropertyId: string): TUnitArray;
+    function GetTenantName(const TenantId: string): string;
+    function GetLeases(const UnitId: string): TLeaseArray;
+    function GetPayments(const LeaseId: string): TPaymentList;
+    function GetLoans(const PropertyId: string): TLoanArray;
+    function GetSchedule(const LoanId: string): TLoanSchedule;
     // >>> Sunday: new endpoint declarations go above this line
   end;
 
@@ -237,6 +243,64 @@ begin
   Result.IsArchived := JValue(O, 'archived_at') <> nil;
 end;
 
+ function ParseUnit(O: TJSONObject): TUnitRec;
+begin
+  Result.Id := JStr(O, 'id');
+  Result.UnitNumber := JStr(O, 'unit_number');
+  Result.Bedrooms := JInt(O, 'bedrooms');
+  Result.Bathrooms := JFloat(O, 'bathrooms');
+  Result.IsOccupied := JBool(O, 'is_occupied');
+end;
+
+function ParseLease(O: TJSONObject): TLeaseRec;
+begin
+  Result.Id := JStr(O, 'id');
+  Result.TenantId := JStr(O, 'tenant_id');
+  Result.TenantName := '';           // filled in by GetLeases
+  Result.StartDate := JDate(O, 'start_date');
+  Result.EndDate := JDate(O, 'end_date');
+  Result.RentAmount := JCurr(O, 'rent_amount');
+  Result.CurrencyCode := JStr(O, 'currency');
+  Result.Status := JStr(O, 'status');
+end;
+
+function ParsePayment(O: TJSONObject): TPaymentRec;
+begin
+  Result.Id := JStr(O, 'id');
+  Result.Amount := JCurr(O, 'amount');
+  Result.DueDate := JDate(O, 'due_date');
+  Result.PaidDate := JDate(O, 'paid_date');
+  Result.Status := JStr(O, 'status');
+  Result.Method := JStr(O, 'method');
+end;
+
+function ParseLoan(O: TJSONObject): TLoanRec;
+begin
+  Result.Id := JStr(O, 'id');
+  Result.Lender := JStr(O, 'lender');
+  Result.Principal := JCurr(O, 'principal');
+  Result.DownPayment := JCurr(O, 'down_payment');
+  Result.InterestRatePct := JCurr(O, 'interest_rate_pct');
+  Result.StartDate := JDate(O, 'start_date');
+  Result.Frequency := JStr(O, 'frequency');
+  Result.CurrencyCode := JStr(O, 'currency');
+  Result.Status := JStr(O, 'status');
+end;
+
+function ParseSchedulePeriod(O: TJSONObject): TSchedulePeriodRec;
+begin
+  Result.Period := JInt(O, 'period');
+  Result.DueDate := JDate(O, 'due_date');
+  Result.BeginningBalance := JCurr(O, 'beginning_balance');
+  Result.Amount := JCurr(O, 'amount');
+  Result.InterestAmount := JCurr(O, 'interest_amount');
+  Result.PrincipalAmount := JCurr(O, 'principal_amount');
+  Result.EndingBalance := JCurr(O, 'ending_balance');
+  Result.PctOfPrincipal := JCurr(O, 'pct_of_principal');
+  Result.Status := JStr(O, 'status');
+  Result.PaidDate := JDate(O, 'paid_date');
+  Result.IsDownPayment := JBool(O, 'is_down_payment');
+end;
 // >>> Sunday: new parser functions go above the TPropertyApi line below
 
 { ===== TPropertyApi ===== }
@@ -404,6 +468,122 @@ begin
   Result := Items;
 end;
 
+function TPropertyApi.GetUnits(const PropertyId: string): TUnitArray;
+var
+  Items: TUnitArray;
+begin
+  Items := nil;
+  ForEachItem('/v1/units?property_id=' + PropertyId,
+    procedure(O: TJSONObject)
+    begin
+      Items := Items + [ParseUnit(O)];
+    end);
+  Result := Items;
+end;
+function TPropertyApi.GetTenantName(const TenantId: string): string;
+var
+  Root: TJSONObject;
+begin
+  Root := nil;
+  try
+    Root := ParseObject(Send('GET', '/v1/users/lookup?user_id=' + TenantId));
+  except
+    on E: EApiError do
+      if E.Kind = aekNotFound then
+        Exit('(unknown tenant)')      // a name we cannot show is not an error
+      else
+        raise;                        // anything else: pass it on unchanged
+  end;
+  try
+    Result := JStr(Root, 'full_name');
+  finally
+    Root.Free;
+  end;
+end;
+
+// A unit's leases, each with its tenant's name: one extra call per lease,
+// composed here so the form gets finished records (PLAN a.4, call 8).
+function TPropertyApi.GetLeases(const UnitId: string): TLeaseArray;
+var
+  Items: TLeaseArray;
+  I: Integer;
+begin
+  Items := nil;
+  ForEachItem('/v1/leases?unit_id=' + UnitId,
+    procedure(O: TJSONObject)
+    begin
+      Items := Items + [ParseLease(O)];
+    end);
+  for I := 0 to High(Items) do
+    Items[I].TenantName := GetTenantName(Items[I].TenantId);
+  Result := Items;
+end;
+
+function TPropertyApi.GetPayments(const LeaseId: string): TPaymentList;
+var
+  List: TPaymentList;
+begin
+  List.Items := nil;
+  List.Collected := 0;
+  List.Outstanding := 0;
+  ForEachItem('/v1/payments?lease_id=' + LeaseId,
+    procedure(O: TJSONObject)
+    begin
+      List.Items := List.Items + [ParsePayment(O)];
+    end,
+    procedure(Page: TJSONObject)
+    var
+      Totals: TJSONValue;
+    begin
+      // the server's totals cover every matching row, not just this page
+      Totals := JValue(Page, 'amount_totals');
+      if Totals is TJSONObject then
+      begin
+        List.Collected := JCurr(TJSONObject(Totals), 'collected');
+        List.Outstanding := JCurr(TJSONObject(Totals), 'outstanding');
+      end;
+    end);
+  Result := List;
+end;
+
+function TPropertyApi.GetLoans(const PropertyId: string): TLoanArray;
+var
+  Items: TLoanArray;
+begin
+  Items := nil;
+  ForEachItem('/v1/loans?property_id=' + PropertyId,
+    procedure(O: TJSONObject)
+    begin
+      Items := Items + [ParseLoan(O)];
+    end);
+  Result := Items;
+end;
+
+// Not a paged list: one object with a "periods" array and summary figures.
+function TPropertyApi.GetSchedule(const LoanId: string): TLoanSchedule;
+var
+  Root: TJSONObject;
+  Periods: TJSONValue;
+  I: Integer;
+begin
+  Root := ParseObject(Send('GET', '/v1/loans/' + LoanId + '/schedule'));
+  try
+    Periods := Root.GetValue('periods');
+    if not (Periods is TJSONArray) then
+      raise EApiError.Create(aekUnexpected, 0, 'The schedule has no periods.');
+    SetLength(Result.Periods, TJSONArray(Periods).Count);
+    for I := 0 to TJSONArray(Periods).Count - 1 do
+      Result.Periods[I] := ParseSchedulePeriod(
+        TJSONArray(Periods).Items[I] as TJSONObject);
+    Result.PaidToDate := JCurr(Root, 'paid_to_date');
+    Result.Remaining := JCurr(Root, 'remaining');
+    Result.TotalInterest := JCurr(Root, 'total_interest');
+    Result.Drifted := JBool(Root, 'drifted');
+    Result.OnGrid := JBool(Root, 'on_grid');
+  finally
+    Root.Free;
+  end;
+end;
 // >>> Sunday: new endpoint methods go above "initialization"
 
 initialization

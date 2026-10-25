@@ -93,11 +93,13 @@ end;
 procedure AddDecimal(DS: TFDMemTable; const Name, Caption: string;
   Decimals: Integer; const DisplayFormat: string);
 var
-  F: TBCDField;
+  F: TFMTBCDField;
 begin
-  // An exact decimal with a Currency inside. NOT TCurrencyField: despite its
-  // name, that one is a TFloatField, a Double (PLAN d.6).
-  F := TBCDField.Create(DS);
+  // An exact decimal, never a Double. FireDAC maps a BCD field with
+  // Precision 18 to its FMTBcd type, so the field must be TFMTBCDField:
+  // a TBCDField here gives "Type mismatch ... expecting BCD, actual FMTBcd".
+  // NOT TCurrencyField either: that one is a TFloatField, a Double (PLAN d.6).
+  F := TFMTBCDField.Create(DS);
   F.FieldName := Name;
   F.Precision := 18;
   F.Size := Decimals;                 // for BCD fields, Size = digits after the point
