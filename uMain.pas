@@ -58,6 +58,8 @@ type
     grdForecast: TDBGrid;
     mtForecast: TFDMemTable;
     dsForecast: TDataSource;
+    btnExport: TButton;
+    dlgExport: TSaveDialog;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -71,6 +73,7 @@ type
     procedure mtLoansAfterScroll(DataSet: TDataSet);
     procedure pgcMainChange(Sender: TObject);
     procedure cbFrequencyChange(Sender: TObject);
+    procedure btnExportClick(Sender: TObject);
       private
     FConfig: TAppConfig;
     FApi: TPropertyApi;
@@ -104,6 +107,7 @@ type
     procedure DefineForecastTable;
     procedure LoadForecast;
     procedure FillForecast(const F: TForecast);
+    function ExportTable: TFDMemTable;
   public
     { Public declarations }
   end;
@@ -184,6 +188,24 @@ begin
   // Saturday version: show it. g.12 replaces this with one that signs in
   // again when the token has expired.
   MessageDlg(Err.UserText, mtError, [mbOK], 0);
+end;
+
+procedure TfrmMain.btnExportClick(Sender: TObject);
+var
+  DS: TFDMemTable;
+begin
+  DS := ExportTable;
+  if DS.IsEmpty then
+  begin
+    StatusBar1.SimpleText := 'Nothing to export on this tab.';
+    Exit;
+  end;
+  dlgExport.FileName := 'pmdesk-export.csv';
+  if dlgExport.Execute then
+  begin
+    ExportCsv(DS, dlgExport.FileName);
+    StatusBar1.SimpleText := 'Exported to ' + dlgExport.FileName;
+  end;
 end;
 
 procedure TfrmMain.btnRefreshClick(Sender: TObject);
@@ -745,6 +767,17 @@ begin
   else
     lblForecast.Caption := Format('Never goes negative. Final balance %s %s.',
       [FormatCurr('#,##0.00', F.FinalBalance), F.CurrencyCode]);
+end;
+
+// Which table the Export button writes: the one the current tab is about.
+function TfrmMain.ExportTable: TFDMemTable;
+begin
+  if pgcMain.ActivePage = tsLoans then
+    Result := mtSchedule
+  else if pgcMain.ActivePage = tsCashflow then
+    Result := mtForecast
+  else
+    Result := mtPayments;
 end;
 
 procedure TfrmMain.LoadProperties;

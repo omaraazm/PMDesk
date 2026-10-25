@@ -34,7 +34,7 @@ object frmMain: TfrmMain
     TabOrder = 0
     ExplicitWidth = 1182
     object lblUser: TLabel
-      Left = 190
+      Left = 290
       Top = 12
       Width = 71
       Height = 15
@@ -57,6 +57,15 @@ object frmMain: TfrmMain
       Caption = 'Sign out'
       TabOrder = 1
       OnClick = btnSignOutClick
+    end
+    object btnExport: TButton
+      Left = 184
+      Top = 8
+      Width = 75
+      Height = 25
+      Caption = 'Export CSV'
+      TabOrder = 2
+      OnClick = btnExportClick
     end
   end
   object pnlProperties: TPanel
@@ -471,5 +480,12 @@ object frmMain: TfrmMain
     DataSet = mtForecast
     Left = 680
     Top = 224
+  end
+  object dlgExport: TSaveDialog
+    DefaultExt = 'csv'
+    Filter = 'CSV files (*.csv)|*.csv'
+    Options = [ofOverwritePrompt, ofHideReadOnly, ofEnableSizing]
+    Left = 768
+    Top = 232
   end
 end
