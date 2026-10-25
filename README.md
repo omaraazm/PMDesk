@@ -4,7 +4,8 @@ A Windows desktop client, written in Delphi (VCL), for Property Manager: a
 FastAPI + PostgreSQL backend I built, which also serves a React web app and a
 native iOS app.
 
-![PMDesk](docs/screenshot.png)
+<img width="1905" height="938" alt="Screenshot 2026-10-25 180743" src="https://github.com/user-attachments/assets/37975be0-7a77-4ae6-882c-d9c33b6dd9e5" />
+
 
 ## Why
 
