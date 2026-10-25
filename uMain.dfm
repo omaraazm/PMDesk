@@ -100,9 +100,10 @@ object frmMain: TfrmMain
     Top = 41
     Width = 761
     Height = 661
-    ActivePage = tsUnits
+    ActivePage = tsCashflow
     Align = alClient
     TabOrder = 3
+    OnChange = pgcMainChange
     object tsUnits: TTabSheet
       Caption = 'Units and Leases'
       object gbUnits: TGroupBox
@@ -301,6 +302,58 @@ object frmMain: TfrmMain
         end
       end
     end
+    object tsCashflow: TTabSheet
+      Caption = 'Cashflow'
+      ImageIndex = 2
+      object pnlForecastTop: TPanel
+        Left = 0
+        Top = 0
+        Width = 753
+        Height = 41
+        Align = alTop
+        BevelOuter = bvNone
+        TabOrder = 0
+        ExplicitLeft = 288
+        ExplicitTop = 296
+        ExplicitWidth = 185
+        object lblForecast: TLabel
+          Left = 160
+          Top = 12
+          Width = 3
+          Height = 15
+        end
+        object cbFrequency: TComboBox
+          Left = 8
+          Top = 9
+          Width = 145
+          Height = 23
+          ItemIndex = 1
+          TabOrder = 0
+          Text = 'quarterly'
+          OnChange = cbFrequencyChange
+          Items.Strings = (
+            'monthly'
+            'quarterly'
+            'yearly')
+        end
+      end
+      object grdForecast: TDBGrid
+        Left = 0
+        Top = 41
+        Width = 753
+        Height = 590
+        Align = alClient
+        DataSource = dsForecast
+        Options = [dgTitles, dgIndicator, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgTitleClick, dgTitleHotTrack]
+        ReadOnly = True
+        TabOrder = 1
+        TitleFont.Charset = DEFAULT_CHARSET
+        TitleFont.Color = clWindowText
+        TitleFont.Height = -12
+        TitleFont.Name = 'Segoe UI'
+        TitleFont.Style = []
+      end
+    end
   end
   object mtProperties: TFDMemTable
     AfterScroll = mtPropertiesAfterScroll
@@ -402,5 +455,21 @@ object frmMain: TfrmMain
     DataSet = mtLoans
     Left = 680
     Top = 584
+  end
+  object mtForecast: TFDMemTable
+    FetchOptions.AssignedValues = [evMode]
+    FetchOptions.Mode = fmAll
+    ResourceOptions.AssignedValues = [rvSilentMode]
+    ResourceOptions.SilentMode = True
+    UpdateOptions.AssignedValues = [uvCheckRequired, uvAutoCommitUpdates]
+    UpdateOptions.CheckRequired = False
+    UpdateOptions.AutoCommitUpdates = True
+    Left = 584
+    Top = 216
+  end
+  object dsForecast: TDataSource
+    DataSet = mtForecast
+    Left = 680
+    Top = 224
   end
 end

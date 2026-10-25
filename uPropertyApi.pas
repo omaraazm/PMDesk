@@ -43,6 +43,7 @@ type
     function GetPayments(const LeaseId: string): TPaymentList;
     function GetLoans(const PropertyId: string): TLoanArray;
     function GetSchedule(const LoanId: string): TLoanSchedule;
+    function GetForecast(const Frequency: string): TForecast;
     // >>> Sunday: new endpoint declarations go above this line
   end;
 
@@ -300,6 +301,18 @@ begin
   Result.Status := JStr(O, 'status');
   Result.PaidDate := JDate(O, 'paid_date');
   Result.IsDownPayment := JBool(O, 'is_down_payment');
+end;
+
+function ParseForecastPeriod(O: TJSONObject): TForecastPeriodRec;
+begin
+  Result.Period := JInt(O, 'period');
+  Result.StartDate := JDate(O, 'date');
+  Result.BeginningBalance := JCurr(O, 'beginning_balance');
+  Result.Income := JCurr(O, 'income');
+  Result.RentIncome := JCurr(O, 'rent_income');
+  Result.Payments := JCurr(O, 'payments');
+  Result.Maintenance := JCurr(O, 'maintenance');
+  Result.EndingBalance := JCurr(O, 'ending_balance');
 end;
 // >>> Sunday: new parser functions go above the TPropertyApi line below
 
@@ -580,6 +593,47 @@ begin
     Result.TotalInterest := JCurr(Root, 'total_interest');
     Result.Drifted := JBool(Root, 'drifted');
     Result.OnGrid := JBool(Root, 'on_grid');
+  finally
+    Root.Free;
+  end;
+end;
+
+// The landlord's cashflow forecast. A 404 means "never set up": that is an
+// answer (Configured = False), not an error.
+function TPropertyApi.GetForecast(const Frequency: string): TForecast;
+var
+  Root: TJSONObject;
+  Periods: TJSONValue;
+  I: Integer;
+begin
+  Result.Configured := False;
+  Result.CurrencyCode := '';
+  Result.FirstNegativeDate := 0;
+  Result.FinalBalance := 0;
+  Result.Periods := nil;
+  Root := nil;
+  try
+    Root := ParseObject(Send('GET', '/v1/cashflow/forecast?frequency=' + Frequency));
+  except
+    on E: EApiError do
+      if E.Kind = aekNotFound then
+        Exit                          // never set up: return Configured = False
+      else
+        raise;                        // anything else: pass it on unchanged
+  end;
+  try
+    Result.Configured := True;
+    Result.CurrencyCode := JStr(Root, 'currency');
+    Result.FirstNegativeDate := JDate(Root, 'first_negative_date');
+    Result.FinalBalance := JCurr(Root, 'final_balance');
+    Periods := Root.GetValue('periods');
+    if Periods is TJSONArray then
+    begin
+      SetLength(Result.Periods, TJSONArray(Periods).Count);
+      for I := 0 to TJSONArray(Periods).Count - 1 do
+        Result.Periods[I] := ParseForecastPeriod(
+          TJSONArray(Periods).Items[I] as TJSONObject);
+    end;
   finally
     Root.Free;
   end;

@@ -51,6 +51,13 @@ type
     dsSchedule: TDataSource;
     dsPayments: TDataSource;
     dsLoans: TDataSource;
+    tsCashflow: TTabSheet;
+    pnlForecastTop: TPanel;
+    cbFrequency: TComboBox;
+    lblForecast: TLabel;
+    grdForecast: TDBGrid;
+    mtForecast: TFDMemTable;
+    dsForecast: TDataSource;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -62,6 +69,8 @@ type
     procedure mtLeasesAfterScroll(DataSet: TDataSet);
     procedure mtPaymentsAfterScroll(DataSet: TDataSet);
     procedure mtLoansAfterScroll(DataSet: TDataSet);
+    procedure pgcMainChange(Sender: TObject);
+    procedure cbFrequencyChange(Sender: TObject);
       private
     FConfig: TAppConfig;
     FApi: TPropertyApi;
@@ -92,6 +101,9 @@ type
     procedure LoanChanged;
     procedure LoadSchedule(const LoanId: string);
     procedure FillSchedule(const S: TLoanSchedule);
+    procedure DefineForecastTable;
+    procedure LoadForecast;
+    procedure FillForecast(const F: TForecast);
   public
     { Public declarations }
   end;
@@ -188,6 +200,11 @@ begin
   SignIn;
 end;
 
+procedure TfrmMain.cbFrequencyChange(Sender: TObject);
+begin
+  LoadForecast;
+end;
+
 procedure TfrmMain.FormCreate(Sender: TObject);
 begin
   FConfig := TAppConfig.Create;
@@ -199,6 +216,7 @@ begin
   try
     DefinePropertiesTable;
     DefineDetailTables;
+    DefineForecastTable;
   finally
     FFilling := False;
   end;
@@ -351,6 +369,11 @@ begin
     UnitChanged;
 end;
 
+procedure TfrmMain.pgcMainChange(Sender: TObject);
+begin
+  if pgcMain.ActivePage = tsCashflow then
+    LoadForecast;
+end;
 procedure TfrmMain.FillUnits(const Items: TUnitArray);
 var
   U: TUnitRec;
@@ -650,6 +673,78 @@ begin
   lblSchedule.Caption := Format('Paid to date %s     Remaining %s     Interest %s%s',
     [FormatCurr('#,##0.00', S.PaidToDate), FormatCurr('#,##0.00', S.Remaining),
      FormatCurr('#,##0.00', S.TotalInterest), Notes]);
+end;
+
+procedure TfrmMain.DefineForecastTable;
+begin
+  AddInt(mtForecast, 'Period', '#');
+  AddDate(mtForecast, 'StartDate', 'From');
+  AddMoney(mtForecast, 'Opening', 'Opening');
+  AddMoney(mtForecast, 'Income', 'Income');
+  AddMoney(mtForecast, 'Rent', 'Rent');
+  AddMoney(mtForecast, 'Payments', 'Loan payments');
+  AddMoney(mtForecast, 'Maintenance', 'Maintenance');
+  AddMoney(mtForecast, 'Closing', 'Closing');
+  mtForecast.CreateDataSet;
+end;
+
+procedure TfrmMain.LoadForecast;
+var
+  Frequency: string;
+begin
+  Frequency := cbFrequency.Text;           // read on the UI thread (rule 2)
+  SetBusy(True, 'Loading forecast...');
+  TAsync.Run<TForecast>(
+    function: TForecast
+    begin
+      Result := FApi.GetForecast(Frequency);   // worker thread: no controls here
+    end,
+    procedure(F: TForecast)
+    begin
+      SetBusy(False, '');
+      FillForecast(F);                     // main thread
+    end,
+    procedure(Err: TApiErrorInfo)
+    begin
+      SetBusy(False, '');
+      HandleApiError(Err);
+    end);
+end;
+
+procedure TfrmMain.FillForecast(const F: TForecast);
+var
+  P: TForecastPeriodRec;
+begin
+  mtForecast.DisableControls;
+  try
+    mtForecast.EmptyDataSet;
+    for P in F.Periods do
+    begin
+      mtForecast.Append;
+      mtForecast.FieldByName('Period').AsInteger := P.Period;
+      mtForecast.FieldByName('StartDate').AsDateTime := P.StartDate;
+      mtForecast.FieldByName('Opening').AsCurrency := P.BeginningBalance;
+      mtForecast.FieldByName('Income').AsCurrency := P.Income;
+      mtForecast.FieldByName('Rent').AsCurrency := P.RentIncome;
+      mtForecast.FieldByName('Payments').AsCurrency := P.Payments;
+      mtForecast.FieldByName('Maintenance').AsCurrency := P.Maintenance;
+      mtForecast.FieldByName('Closing').AsCurrency := P.EndingBalance;
+      mtForecast.Post;
+    end;
+    mtForecast.First;
+  finally
+    mtForecast.EnableControls;
+  end;
+
+  // the server's own summary figures, shown as a sentence
+  if not F.Configured then
+    lblForecast.Caption := 'Cashflow forecasting is not set up for this account.'
+  else if F.FirstNegativeDate <> 0 then
+    lblForecast.Caption := Format('Goes negative from %s. Final balance %s %s.',
+      [DateToStr(F.FirstNegativeDate), FormatCurr('#,##0.00', F.FinalBalance), F.CurrencyCode])
+  else
+    lblForecast.Caption := Format('Never goes negative. Final balance %s %s.',
+      [FormatCurr('#,##0.00', F.FinalBalance), F.CurrencyCode]);
 end;
 
 procedure TfrmMain.LoadProperties;

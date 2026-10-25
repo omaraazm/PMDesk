@@ -21,6 +21,7 @@ loan plan rounds) instead of copying them, and it holds no database password.
 - Loan amortization schedules, including the interest/principal split
 - Every request runs in the background, so the window never freezes
 - Stale replies are dropped when the user has already moved to another row
+- Cashflow forecast across all properties (monthly / quarterly / yearly), with the date the balance first goes negative and the final balance; a landlord without a forecast profile sees "not set up", not an error
 
 ## How it is built
 
