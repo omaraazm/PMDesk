@@ -45,3 +45,5 @@ Forms (VCL) -> TAsync (TTask + TThread.Queue) -> TPropertyApi (THTTPClient + Sys
 1. Delphi 13 (Community Edition is enough): open `PMDesk.dproj`, build for Windows 32-bit.
 2. Run once. It creates `PMDesk.ini` next to the exe. Set `BaseUrl` there (see `PMDesk.example.ini`).
 3. Sign in with a landlord account.
+
+-- Contact me for a demo account 
