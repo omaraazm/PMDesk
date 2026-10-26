@@ -22,7 +22,7 @@ loan plan rounds) instead of copying them, and it holds no database password.
 - Every request runs in the background, so the window never freezes
 - Stale replies are dropped when the user has already moved to another row
 - Cashflow forecast across all properties (monthly / quarterly / yearly), with the date the balance first goes negative and the final balance; a landlord without a forecast profile sees "not set up", not an error
-- Export the current tab (payments, loan schedule or forecast) as CSV for Excel, using Windows' list separator (`;` in other regions) and UTF-8 with a byte-order mark
+- Export the current tab (payments, loan schedule or forecast) as CSV for Excel, using Windows' list separator and UTF-8 with a byte-order mark
 
 ## How it is built
 
